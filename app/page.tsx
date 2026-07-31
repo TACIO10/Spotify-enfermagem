@@ -10,6 +10,8 @@ type Track = {
   src: string;
   color: string;
   icon: string;
+  description: string;
+  highlights: string[];
 };
 
 const tracks: Track[] = [
@@ -21,6 +23,8 @@ const tracks: Track[] = [
     src: "/audio/classe-farmacologica.mp3",
     color: "lime",
     icon: "Rx",
+    description: "Uma revisão musical das principais classes de medicamentos cobradas em concursos de enfermagem.",
+    highlights: ["Classes e indicações", "Associações para memorizar", "Revisão para concursos"],
   },
   {
     id: 2,
@@ -30,6 +34,8 @@ const tracks: Track[] = [
     src: "/audio/mecanismo-de-acao.mp3",
     color: "violet",
     icon: "↯",
+    description: "Entenda como os medicamentos atuam no organismo e fixe os mecanismos mais cobrados em prova.",
+    highlights: ["Ação no organismo", "Alvos farmacológicos", "Memorização por ritmo"],
   },
 ];
 
@@ -56,6 +62,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [liked, setLiked] = useState<number[]>([]);
   const [activeNav, setActiveNav] = useState("Início");
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 
   const filteredTracks = useMemo(
     () =>
@@ -80,6 +87,13 @@ export default function Home() {
       audioRef.current.load();
     }
     audioRef.current.play().catch(() => setIsPlaying(false));
+  };
+
+  const openTrack = (track: Track) => {
+    setSelectedTrack(track);
+    setCurrent(track);
+    setActiveNav("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const togglePlay = () => {
@@ -151,7 +165,15 @@ export default function Home() {
       <main className="main" id="top">
         <header>
           <div className="history-buttons">
-            <button aria-label="Voltar">‹</button><button aria-label="Avançar">›</button>
+            <button
+              className={selectedTrack ? "history-active" : ""}
+              aria-label="Voltar"
+              onClick={() => {
+                setSelectedTrack(null);
+                setActiveNav("Início");
+              }}
+            >‹</button>
+            <button aria-label="Avançar">›</button>
           </div>
           <label className="search">
             <span>⌕</span>
@@ -167,6 +189,87 @@ export default function Home() {
           <button className="bell" aria-label="Notificações">♢</button>
         </header>
 
+        {selectedTrack ? (
+          <section className={`track-detail detail-${selectedTrack.color}`}>
+            <div className="detail-hero">
+              <div className={`detail-cover cover-${selectedTrack.color}`}>
+                <div className="detail-cover-orbit" />
+                <span>{selectedTrack.icon}</span>
+                <small>PULSO • ENFERMAGEM</small>
+              </div>
+              <div className="detail-heading">
+                <span className="detail-type">FAIXA EDUCATIVA</span>
+                <h1>{selectedTrack.title}</h1>
+                <p>{selectedTrack.description}</p>
+                <div className="detail-byline">
+                  <b className="detail-avatar">P</b>
+                  <strong>Pulso</strong>
+                  <i /> <span>2026</span> <i /> <span>1 música</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="detail-body">
+              <div className="detail-actions">
+                <button className="detail-play" onClick={() => current.id === selectedTrack.id ? togglePlay() : playTrack(selectedTrack)} aria-label={isPlaying && current.id === selectedTrack.id ? "Pausar" : "Reproduzir"}>
+                  {isPlaying && current.id === selectedTrack.id ? "Ⅱ" : "▶"}
+                </button>
+                <button
+                  className={`detail-like ${liked.includes(selectedTrack.id) ? "liked" : ""}`}
+                  onClick={() => toggleLike(selectedTrack.id)}
+                  aria-label="Curtir faixa"
+                >♥</button>
+                <button className="detail-more" aria-label="Mais opções">•••</button>
+              </div>
+
+              <div className="detail-table-head">
+                <span>#</span><span>TÍTULO</span><span>CONTEÚDO</span><span>◷</span>
+              </div>
+              <button className="detail-track-row" onDoubleClick={() => playTrack(selectedTrack)}>
+                <span className="row-index" onClick={(event) => { event.stopPropagation(); playTrack(selectedTrack); }}>
+                  {isPlaying && current.id === selectedTrack.id ? "▮▮" : "1"}
+                </span>
+                <span className="row-title"><strong>{selectedTrack.title}</strong><small>Pulso</small></span>
+                <span className="row-topic">{selectedTrack.topic} para concursos</span>
+                <span>{current.id === selectedTrack.id ? formatTime(duration) : "—"}</span>
+              </button>
+
+              <div className="detail-columns">
+                <article className="about-track">
+                  <span className="detail-kicker">SOBRE ESTA FAIXA</span>
+                  <h2>Aprenda cantando,<br />lembre na prova.</h2>
+                  <p>{selectedTrack.description} Coloque no repeat durante a rotina e transforme os conceitos em memória de longo prazo.</p>
+                  <div className="highlight-list">
+                    {selectedTrack.highlights.map((item, index) => (
+                      <div key={item}><span>0{index + 1}</span><strong>{item}</strong></div>
+                    ))}
+                  </div>
+                </article>
+                <aside className="study-tip">
+                  <span>✦</span>
+                  <small>DICA DE ESTUDO</small>
+                  <h3>Ouça 3 vezes</h3>
+                  <p>Primeiro acompanhe o tema. Depois tente antecipar os conceitos. Na terceira, cante junto.</p>
+                  <button onClick={() => playTrack(selectedTrack)}>▶ Ouvir agora</button>
+                </aside>
+              </div>
+
+              <section className="more-tracks">
+                <div className="section-heading"><div><h2>Mais para estudar</h2><p>Continue sua sessão de farmacologia.</p></div></div>
+                <div className="compact-track-list">
+                  {tracks.filter((track) => track.id !== selectedTrack.id).map((track) => (
+                    <button key={track.id} onClick={() => openTrack(track)}>
+                      <span className={`compact-cover cover-${track.color}`}>{track.icon}</span>
+                      <span><strong>{track.title}</strong><small>{track.subtitle}</small></span>
+                      <b>→</b>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </section>
+        ) : (
+        <>
         <section className="hero">
           <div className="hero-copy">
             <span className="eyebrow"><i /> NOVO POR AQUI</span>
@@ -203,13 +306,13 @@ export default function Home() {
           <div className="track-grid">
             {filteredTracks.length ? filteredTracks.map((track) => (
               <article className="track-card" key={track.id}>
-                <button className={`cover cover-${track.color}`} onClick={() => playTrack(track)} aria-label={`Ouvir ${track.title}`}>
+                <button className={`cover cover-${track.color}`} onClick={() => openTrack(track)} aria-label={`Abrir ${track.title}`}>
                   <div className="cover-symbol">{track.icon}</div>
                   <div className="wave"><i /><i /><i /><i /><i /><i /></div>
-                  <span className="card-play">{current.id === track.id && isPlaying ? "Ⅱ" : "▶"}</span>
+                  <span className="card-play">→</span>
                 </button>
                 <div className="track-meta">
-                  <button onClick={() => playTrack(track)}>
+                  <button onClick={() => openTrack(track)}>
                     <strong>{track.title}</strong><span>{track.subtitle}</span>
                   </button>
                   <button
@@ -251,6 +354,8 @@ export default function Home() {
         <footer className="page-footer">
           <span><i /> PULSO</span><p>Ouça. Memorize. Passe.</p>
         </footer>
+        </>
+        )}
       </main>
 
       <nav className="mobile-nav" aria-label="Navegação móvel">
