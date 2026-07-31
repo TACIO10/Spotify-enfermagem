@@ -475,6 +475,9 @@ export default function Home() {
             <canvas ref={visualizerRef} className="audio-visualizer" aria-label="Visualização do áudio em tempo real" />
             <i />
           </div>
+          {isPlaying && (
+            <button className="pause-only" onClick={togglePlay} aria-label="Pausar música">Ⅱ</button>
+          )}
           <button className={liked.includes(current.id) ? "liked" : "like"} onClick={() => toggleLike(current.id)} aria-label="Curtir faixa">♥</button>
         </div>
         <div className="player-center">
