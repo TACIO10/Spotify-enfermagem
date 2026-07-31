@@ -450,6 +450,24 @@ export default function Home() {
           onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
           onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         />
+        <div className="global-seek">
+          <span>{formatTime(time)}</span>
+          <input
+            aria-label="Voltar ou avançar para qualquer ponto da música"
+            type="range"
+            min="0"
+            max={duration || 0}
+            step="0.1"
+            value={time}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setTime(next);
+              if (audioRef.current) audioRef.current.currentTime = next;
+            }}
+            style={{ "--progress": `${duration ? (time / duration) * 100 : 0}%` } as React.CSSProperties}
+          />
+          <span>{formatTime(duration)}</span>
+        </div>
         <div className="now-playing">
           <div className={`mini-cover cover-${current.color}`}>{current.icon}</div>
           <div><strong>{current.title}</strong><span>{current.topic} • Pulso</span></div>
@@ -465,23 +483,6 @@ export default function Home() {
             <button onClick={() => skip(-1)} aria-label="Faixa anterior">▮◀</button>
             <button onClick={() => skip(1)} aria-label="Próxima faixa">▶▮</button>
             <button aria-label="Repetir">↻</button>
-          </div>
-          <div className="timeline">
-            <span>{formatTime(time)}</span>
-            <input
-              aria-label="Progresso da faixa"
-              type="range"
-              min="0"
-              max={duration || 0}
-              value={time}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                setTime(next);
-                if (audioRef.current) audioRef.current.currentTime = next;
-              }}
-              style={{ "--progress": `${duration ? (time / duration) * 100 : 0}%` } as React.CSSProperties}
-            />
-            <span>{formatTime(duration)}</span>
           </div>
         </div>
         <div className="player-tools">
