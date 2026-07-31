@@ -88,13 +88,13 @@ export default function Home() {
     const context = canvas.getContext("2d");
     if (!context) return;
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = 118 * ratio;
-    canvas.height = 32 * ratio;
+    canvas.width = 220 * ratio;
+    canvas.height = 42 * ratio;
     context.scale(ratio, ratio);
     context.fillStyle = "#526058";
-    const idleBars = [5, 9, 14, 7, 18, 11, 22, 8, 16, 25, 12, 7, 20, 10, 15, 6, 18, 9, 23, 12, 7, 16, 10, 20, 8, 13, 6, 17, 11, 21, 8, 15, 10, 6];
+    const idleBars = [5, 9, 14, 7, 18, 11, 22, 8, 16, 25, 12, 7, 20, 10, 15, 6, 18, 9, 23, 12, 7, 16, 10, 20, 8, 13, 6, 17, 11, 21, 8, 15, 10, 6, 19, 27, 12, 17, 8, 23, 14, 29, 10, 18, 7, 22, 13, 25, 9, 17, 6, 20, 11, 26, 8, 15, 10, 23, 7, 18, 12, 27, 9, 16];
     idleBars.forEach((height, index) => {
-      context.fillRect(index * 3.45, (32 - height) / 2, 1.8, height);
+      context.fillRect(index * 3.45, (42 - height) / 2, 1.8, height);
     });
 
     return () => {
@@ -130,20 +130,20 @@ export default function Home() {
       if (!analyser || !drawingContext) return;
       const frequencies = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(frequencies);
-      drawingContext.clearRect(0, 0, 118, 32);
-      const gradient = drawingContext.createLinearGradient(0, 0, 118, 0);
+      drawingContext.clearRect(0, 0, 220, 42);
+      const gradient = drawingContext.createLinearGradient(0, 0, 220, 0);
       gradient.addColorStop(0, "#a5b3aa");
       gradient.addColorStop(0.45, "#20db78");
       gradient.addColorStop(1, "#8ff0ba");
       drawingContext.fillStyle = gradient;
 
-      for (let index = 0; index < 34; index += 1) {
+      for (let index = 0; index < 64; index += 1) {
         const sampleIndex = Math.min(frequencies.length - 1, Math.floor(index * 0.72));
         const energy = frequencies[sampleIndex] / 255;
         const shaped = Math.max(0.12, Math.pow(energy, 0.72));
         const variation = 0.72 + Math.abs(Math.sin(index * 1.63)) * 0.45;
-        const height = Math.min(29, 3 + shaped * 25 * variation);
-        drawingContext.fillRect(index * 3.45, (32 - height) / 2, 1.8, height);
+        const height = Math.min(39, 4 + shaped * 34 * variation);
+        drawingContext.fillRect(index * 3.45, (42 - height) / 2, 1.8, height);
       }
       animationRef.current = requestAnimationFrame(draw);
     };
@@ -463,9 +463,6 @@ export default function Home() {
           <div className="controls">
             <button aria-label="Aleatório">⌘</button>
             <button onClick={() => skip(-1)} aria-label="Faixa anterior">▮◀</button>
-            <button className="main-play" onClick={togglePlay} aria-label={isPlaying ? "Pausar" : "Reproduzir"}>
-              {isPlaying ? "Ⅱ" : "▶"}
-            </button>
             <button onClick={() => skip(1)} aria-label="Próxima faixa">▶▮</button>
             <button aria-label="Repetir">↻</button>
           </div>
