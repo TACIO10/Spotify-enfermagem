@@ -54,6 +54,11 @@ const formatTime = (seconds: number) => {
 
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const visualizerRef = useRef<HTMLCanvasElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const animationRef = useRef<number | null>(null);
   const [current, setCurrent] = useState(tracks[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -77,11 +82,80 @@ export default function Home() {
     audioRef.current.volume = volume;
   }, [volume]);
 
+  useEffect(() => {
+    const canvas = visualizerRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = 118 * ratio;
+    canvas.height = 32 * ratio;
+    context.scale(ratio, ratio);
+    context.fillStyle = "#526058";
+    const idleBars = [5, 9, 14, 7, 18, 11, 22, 8, 16, 25, 12, 7, 20, 10, 15, 6, 18, 9, 23, 12, 7, 16, 10, 20, 8, 13, 6, 17, 11, 21, 8, 15, 10, 6];
+    idleBars.forEach((height, index) => {
+      context.fillRect(index * 3.45, (32 - height) / 2, 1.8, height);
+    });
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      audioContextRef.current?.close().catch(() => undefined);
+    };
+  }, []);
+
+  const ensureVisualizer = () => {
+    const audio = audioRef.current;
+    const canvas = visualizerRef.current;
+    if (!audio || !canvas) return;
+
+    if (!audioContextRef.current) {
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.82;
+      const source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      sourceRef.current = source;
+    }
+
+    audioContextRef.current.resume().catch(() => undefined);
+    if (animationRef.current) return;
+
+    const draw = () => {
+      const analyser = analyserRef.current;
+      const drawingContext = canvas.getContext("2d");
+      if (!analyser || !drawingContext) return;
+      const frequencies = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(frequencies);
+      drawingContext.clearRect(0, 0, 118, 32);
+      const gradient = drawingContext.createLinearGradient(0, 0, 118, 0);
+      gradient.addColorStop(0, "#a5b3aa");
+      gradient.addColorStop(0.45, "#20db78");
+      gradient.addColorStop(1, "#8ff0ba");
+      drawingContext.fillStyle = gradient;
+
+      for (let index = 0; index < 34; index += 1) {
+        const sampleIndex = Math.min(frequencies.length - 1, Math.floor(index * 0.72));
+        const energy = frequencies[sampleIndex] / 255;
+        const shaped = Math.max(0.12, Math.pow(energy, 0.72));
+        const variation = 0.72 + Math.abs(Math.sin(index * 1.63)) * 0.45;
+        const height = Math.min(29, 3 + shaped * 25 * variation);
+        drawingContext.fillRect(index * 3.45, (32 - height) / 2, 1.8, height);
+      }
+      animationRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+  };
+
   const playTrack = (track: Track) => {
     const changed = current.id !== track.id;
     setCurrent(track);
     setIsPlaying(true);
     if (!audioRef.current) return;
+    ensureVisualizer();
     if (changed) {
       audioRef.current.src = track.src;
       audioRef.current.load();
@@ -98,6 +172,7 @@ export default function Home() {
 
   const togglePlay = () => {
     if (!audioRef.current) return;
+    ensureVisualizer();
     if (isPlaying) audioRef.current.pause();
     else audioRef.current.play().catch(() => setIsPlaying(false));
     setIsPlaying(!isPlaying);
@@ -378,6 +453,10 @@ export default function Home() {
         <div className="now-playing">
           <div className={`mini-cover cover-${current.color}`}>{current.icon}</div>
           <div><strong>{current.title}</strong><span>{current.topic} • Pulso</span></div>
+          <div className={`visualizer-shell ${isPlaying ? "is-live" : ""}`} title="Visualização do áudio em tempo real">
+            <canvas ref={visualizerRef} className="audio-visualizer" aria-label="Visualização do áudio em tempo real" />
+            <i />
+          </div>
           <button className={liked.includes(current.id) ? "liked" : "like"} onClick={() => toggleLike(current.id)} aria-label="Curtir faixa">♥</button>
         </div>
         <div className="player-center">
