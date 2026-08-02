@@ -39,12 +39,45 @@ const tracks: Track[] = [
     description: "Entenda como os medicamentos atuam no organismo e fixe os mecanismos mais cobrados em prova.",
     highlights: ["Ação no organismo", "Alvos farmacológicos", "Memorização por ritmo"],
   },
+  {
+    id: 3,
+    title: "Atenção Primária",
+    subtitle: "Saúde coletiva • Faixa educativa",
+    topic: "Saúde Coletiva",
+    src: `${basePath}/audio/atencao-primaria.mp3`,
+    color: "blue",
+    icon: "APS",
+    description: "Revise os fundamentos da Atenção Primária e seu papel como porta de entrada para o cuidado em saúde.",
+    highlights: ["Porta de entrada", "Cuidado contínuo", "Território e comunidade"],
+  },
+  {
+    id: 4,
+    title: "SUS em Ação",
+    subtitle: "Saúde coletiva • Faixa educativa",
+    topic: "Saúde Coletiva",
+    src: `${basePath}/audio/sus-em-acao.mp3`,
+    color: "orange",
+    icon: "SUS",
+    description: "Uma revisão musical sobre o funcionamento do SUS e a organização do cuidado na prática.",
+    highlights: ["Rede de atenção", "Acesso universal", "Cuidado integrado"],
+  },
+  {
+    id: 5,
+    title: "Os Três Pilares da Saúde",
+    subtitle: "Saúde coletiva • Faixa educativa",
+    topic: "Saúde Coletiva",
+    src: `${basePath}/audio/tres-pilares-da-saude.mp3`,
+    color: "pink",
+    icon: "3+",
+    description: "Fixe os três pilares essenciais da saúde pública e reconheça como eles aparecem nas questões de concurso.",
+    highlights: ["Promoção da saúde", "Prevenção de agravos", "Recuperação do cuidado"],
+  },
 ];
 
 const categories = [
   { name: "Farmacologia", count: "2 faixas", color: "mint", icon: "Rx" },
   { name: "Urgência e emergência", count: "Em breve", color: "orange", icon: "✚" },
-  { name: "Saúde coletiva", count: "Em breve", color: "blue", icon: "◎" },
+  { name: "Saúde coletiva", count: "3 faixas", color: "blue", icon: "◎" },
   { name: "Procedimentos", count: "Em breve", color: "pink", icon: "⌁" },
 ];
 
