@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   title: "Pulso — Enfermagem que fica na cabeça",
   description: "Conteúdo de concurso de enfermagem transformado em música.",
   icons: { icon: `${basePath}/favicon.png`, shortcut: `${basePath}/favicon.png` },
+  manifest: `${basePath}/manifest.webmanifest`,
+  appleWebApp: { capable: true, title: "Pulso", statusBarStyle: "black-translucent" },
   openGraph: {
     title: "Pulso — Enfermagem que fica na cabeça",
     description: "Ouça, memorize e avance na sua preparação.",

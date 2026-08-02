@@ -108,6 +108,7 @@ export default function Home() {
   const [shuffle, setShuffle] = useState(false);
   const [repeatOne, setRepeatOne] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [installGuideOpen, setInstallGuideOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   const filteredTracks = useMemo(
@@ -145,6 +146,11 @@ export default function Home() {
     if (!hydrated) return;
     localStorage.setItem("pulso-library", JSON.stringify({ liked, history, playlists, volume }));
   }, [hydrated, liked, history, playlists, volume]);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register(`${basePath}/sw.js`).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const canvas = visualizerRef.current;
@@ -514,30 +520,15 @@ export default function Home() {
           </section>
         ) : (
         <>
-        <section className="hero">
-          <div className="hero-copy">
-            <span className="eyebrow"><i /> NOVO POR AQUI</span>
-            <h1>Estude enfermagem<br />no seu <em>ritmo.</em></h1>
-            <p>Conteúdo de concurso transformado em música.<br />Dê o play e faça o conhecimento ficar.</p>
-            <div className="hero-actions">
-              <button className="primary" onClick={() => playTrack(tracks[0])}>
-                <span>▶</span> Começar a ouvir
-              </button>
-              <button className="secondary" onClick={() => navigate("Explorar")}>
-                Explorar catálogo
-              </button>
-            </div>
+        <section className="quick-start">
+          <div>
+            <span className="quick-kicker"><i /> PULSO ENFERMAGEM</span>
+            <h1>Por onde você quer começar?</h1>
+            <p>Explore as músicas ou instale o Pulso no celular para estudar quando quiser.</p>
           </div>
-          <div className="hero-art" aria-hidden="true">
-            <div className="orbit one" /><div className="orbit two" />
-            <div className="vinyl">
-              <div className="vinyl-ring" />
-              <div className="vinyl-label"><span>⚕</span><small>PULSO</small></div>
-            </div>
-            <div className="pulse-line"><i /><i /><i /><i /><i /><i /><i /></div>
-            <span className="float-note note-one">♪</span>
-            <span className="float-note note-two">♫</span>
-            <span className="float-pill">Rx</span>
+          <div className="quick-actions">
+            <button className="explore-button" onClick={() => navigate("Explorar")}><span>⌕</span><div><strong>Explorar músicas</strong><small>Encontre uma matéria</small></div><b>→</b></button>
+            <button className="install-button" onClick={() => setInstallGuideOpen(true)}><span>↓</span><div><strong>Instalar no celular</strong><small>Veja o tutorial</small></div><b>→</b></button>
           </div>
         </section>
 
@@ -613,6 +604,39 @@ export default function Home() {
           return <button key={label} onClick={() => navigate(label)} className={activeNav === normalized ? "active" : ""}><span>{icon}</span>{label}</button>;
         })}
       </nav>
+
+      {installGuideOpen && (
+        <div className="install-overlay" role="dialog" aria-modal="true" aria-labelledby="install-title" onClick={() => setInstallGuideOpen(false)}>
+          <section className="install-guide" onClick={(event) => event.stopPropagation()}>
+            <button className="install-close" onClick={() => setInstallGuideOpen(false)} aria-label="Fechar tutorial">×</button>
+            <span className="install-kicker">PULSO NO SEU CELULAR</span>
+            <h2 id="install-title">Instale como um aplicativo</h2>
+            <p className="install-intro">Não ocupa quase espaço e abre em tela cheia, direto da sua tela inicial.</p>
+            <div className="phone-guides">
+              <article>
+                <div className="phone-heading"><span>●</span><div><strong>Android</strong><small>Google Chrome</small></div></div>
+                <ol>
+                  <li><b>1</b><span>Abra o Pulso no <strong>Chrome</strong>.</span></li>
+                  <li><b>2</b><span>Toque nos <strong>três pontinhos ⋮</strong> no alto da tela.</span></li>
+                  <li><b>3</b><span>Escolha <strong>“Adicionar à tela inicial”</strong> ou “Instalar app”.</span></li>
+                  <li><b>4</b><span>Confirme em <strong>Instalar</strong>.</span></li>
+                </ol>
+              </article>
+              <article>
+                <div className="phone-heading apple"><span>●</span><div><strong>iPhone</strong><small>Safari</small></div></div>
+                <ol>
+                  <li><b>1</b><span>Abra o Pulso no <strong>Safari</strong>.</span></li>
+                  <li><b>2</b><span>Toque no botão <strong>Compartilhar</strong> na barra inferior.</span></li>
+                  <li><b>3</b><span>Role e escolha <strong>“Adicionar à Tela de Início”</strong>.</span></li>
+                  <li><b>4</b><span>Confirme tocando em <strong>Adicionar</strong>.</span></li>
+                </ol>
+              </article>
+            </div>
+            <div className="install-result"><span>✓</span><p>Pronto! O ícone do Pulso aparecerá junto com seus outros aplicativos.</p></div>
+            <button className="install-done" onClick={() => setInstallGuideOpen(false)}>Entendi</button>
+          </section>
+        </div>
+      )}
 
       {queueOpen && (
         <aside className="queue-panel">
