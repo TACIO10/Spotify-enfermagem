@@ -68,6 +68,12 @@ export default function Home() {
   const [liked, setLiked] = useState<number[]>([]);
   const [activeNav, setActiveNav] = useState("Início");
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [history, setHistory] = useState<number[]>([]);
+  const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; trackIds: number[] }>>([]);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeatOne, setRepeatOne] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const filteredTracks = useMemo(
     () =>
@@ -76,11 +82,34 @@ export default function Home() {
       ),
     [query],
   );
+  const likedTracks = useMemo(() => tracks.filter((track) => liked.includes(track.id)), [liked]);
+  const recentTracks = useMemo(
+    () => history.map((id) => tracks.find((track) => track.id === id)).filter((track): track is Track => Boolean(track)),
+    [history],
+  );
 
   useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.volume = volume;
   }, [volume]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("pulso-library") || "{}");
+      if (Array.isArray(saved.liked)) setLiked(saved.liked);
+      if (Array.isArray(saved.history)) setHistory(saved.history);
+      if (Array.isArray(saved.playlists)) setPlaylists(saved.playlists);
+      if (typeof saved.volume === "number") setVolume(saved.volume);
+    } catch {
+      // A biblioteca continua funcionando mesmo se o armazenamento local estiver indisponível.
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem("pulso-library", JSON.stringify({ liked, history, playlists, volume }));
+  }, [hydrated, liked, history, playlists, volume]);
 
   useEffect(() => {
     const canvas = visualizerRef.current;
@@ -154,6 +183,7 @@ export default function Home() {
     const changed = current.id !== track.id;
     setCurrent(track);
     setIsPlaying(true);
+    setHistory((items) => [track.id, ...items.filter((id) => id !== track.id)].slice(0, 12));
     if (!audioRef.current) return;
     ensureVisualizer();
     if (changed) {
@@ -165,7 +195,6 @@ export default function Home() {
 
   const openTrack = (track: Track) => {
     setSelectedTrack(track);
-    setCurrent(track);
     setActiveNav("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -180,6 +209,11 @@ export default function Home() {
 
   const skip = (direction: number) => {
     const index = tracks.findIndex((track) => track.id === current.id);
+    if (shuffle && tracks.length > 1 && direction > 0) {
+      const alternatives = tracks.filter((track) => track.id !== current.id);
+      playTrack(alternatives[Math.floor(Math.random() * alternatives.length)]);
+      return;
+    }
     playTrack(tracks[(index + direction + tracks.length) % tracks.length]);
   };
 
@@ -189,10 +223,33 @@ export default function Home() {
     );
   };
 
+  const navigate = (destination: string) => {
+    const normalized = destination === "Biblioteca" ? "Sua biblioteca" : destination;
+    setSelectedTrack(null);
+    setActiveNav(normalized);
+    if (normalized !== "Explorar") setQuery("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const createPlaylist = () => {
+    const name = window.prompt("Qual será o nome da sua playlist de estudos?");
+    if (!name?.trim()) return;
+    setPlaylists((items) => [
+      ...items,
+      { id: `${Date.now()}`, name: name.trim(), trackIds: [current.id] },
+    ]);
+    navigate("Sua biblioteca");
+  };
+
+  const playCollection = (collection: Track[]) => {
+    if (!collection.length) return;
+    playTrack(collection[0]);
+  };
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#top" aria-label="Pulso, início">
+        <a className="brand" href="#top" onClick={() => navigate("Início")} aria-label="Pulso, início">
           <span className="brand-mark"><i /><i /><i /></span>
           <span>PULSO</span>
         </a>
@@ -206,7 +263,7 @@ export default function Home() {
             <button
               className={activeNav === label ? "active" : ""}
               key={label}
-              onClick={() => setActiveNav(label)}
+              onClick={() => navigate(label)}
             >
               <span>{icon}</span>{label}
             </button>
@@ -215,8 +272,8 @@ export default function Home() {
 
         <div className="side-section">
           <p>MINHA COLEÇÃO</p>
-          <button onClick={() => setQuery("")}><span className="plus">＋</span>Criar playlist</button>
-          <button onClick={() => setQuery(liked.length ? "" : "___")}>
+          <button onClick={createPlaylist}><span className="plus">＋</span>Criar playlist</button>
+          <button onClick={() => navigate("Sua biblioteca")}>
             <span className="heart-tile">♥</span>Curtidas
             {liked.length > 0 && <b>{liked.length}</b>}
           </button>
@@ -255,7 +312,12 @@ export default function Home() {
             <input
               aria-label="Buscar músicas e temas"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onFocus={() => { if (!selectedTrack) setActiveNav("Explorar"); }}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSelectedTrack(null);
+                setActiveNav("Explorar");
+              }}
               placeholder="O que você quer revisar?"
             />
             {query && <button onClick={() => setQuery("")} aria-label="Limpar busca">×</button>}
@@ -300,7 +362,7 @@ export default function Home() {
               <div className="detail-table-head">
                 <span>#</span><span>TÍTULO</span><span>CONTEÚDO</span><span>◷</span>
               </div>
-              <button className="detail-track-row" onDoubleClick={() => playTrack(selectedTrack)}>
+              <button className="detail-track-row" onClick={() => current.id === selectedTrack.id ? togglePlay() : playTrack(selectedTrack)}>
                 <span className="row-index" onClick={(event) => { event.stopPropagation(); playTrack(selectedTrack); }}>
                   {isPlaying && current.id === selectedTrack.id ? "▮▮" : "1"}
                 </span>
@@ -343,6 +405,78 @@ export default function Home() {
               </section>
             </div>
           </section>
+        ) : activeNav === "Explorar" ? (
+          <section className="app-view explore-view">
+            <div className="view-heading">
+              <span className="view-kicker">DESCUBRA SEU PRÓXIMO TEMA</span>
+              <h1>Explorar</h1>
+              <p>Busque uma faixa ou escolha uma matéria para começar a revisão.</p>
+            </div>
+
+            <div className="category-grid explore-categories">
+              {categories.map((category) => (
+                <button
+                  className={`category category-${category.color} ${query === category.name ? "selected" : ""}`}
+                  key={category.name}
+                  onClick={() => setQuery(category.count === "Em breve" ? "" : category.name)}
+                >
+                  <span>{category.icon}</span>
+                  <div><strong>{category.name}</strong><small>{category.count}</small></div>
+                  <b>{category.count === "Em breve" ? "•" : "→"}</b>
+                </button>
+              ))}
+            </div>
+
+            <div className="view-section-heading">
+              <div><h2>{query ? `Resultados para “${query}”` : "Todas as faixas"}</h2><p>{filteredTracks.length} músicas disponíveis</p></div>
+              {filteredTracks.length > 0 && <button className="collection-play" onClick={() => playCollection(filteredTracks)}>▶ Reproduzir tudo</button>}
+            </div>
+            <div className="track-list">
+              {filteredTracks.length ? filteredTracks.map((track, index) => (
+                <div className={`track-list-item ${current.id === track.id ? "current" : ""}`} key={track.id}>
+                  <button className="list-index" onClick={() => playTrack(track)} aria-label={`Reproduzir ${track.title}`}>
+                    {current.id === track.id && isPlaying ? "▮▮" : index + 1}
+                  </button>
+                  <button className={`list-cover cover-${track.color}`} onClick={() => openTrack(track)}>{track.icon}</button>
+                  <button className="list-title" onClick={() => openTrack(track)}><strong>{track.title}</strong><span>Pulso • {track.topic}</span></button>
+                  <span className="list-topic">{track.description}</span>
+                  <button className={liked.includes(track.id) ? "liked" : "like"} onClick={() => toggleLike(track.id)}>♥</button>
+                  <button className="row-play" onClick={() => current.id === track.id ? togglePlay() : playTrack(track)}>{current.id === track.id && isPlaying ? "Ⅱ" : "▶"}</button>
+                </div>
+              )) : <div className="empty-library"><span>⌕</span><h3>Nenhuma música encontrada</h3><p>Tente buscar “farmacologia”.</p><button onClick={() => setQuery("")}>Limpar busca</button></div>}
+            </div>
+          </section>
+        ) : activeNav === "Sua biblioteca" ? (
+          <section className="app-view library-view">
+            <div className="view-heading library-heading">
+              <span className="view-kicker">SUA COLEÇÃO</span>
+              <h1>Biblioteca</h1>
+              <p>Suas músicas, playlists e revisões recentes ficam guardadas neste dispositivo.</p>
+              <button className="new-playlist" onClick={createPlaylist}>＋ Criar playlist</button>
+            </div>
+
+            <div className="library-stats">
+              <div><strong>{liked.length}</strong><span>músicas curtidas</span></div>
+              <div><strong>{history.length}</strong><span>revisões recentes</span></div>
+              <div><strong>{playlists.length}</strong><span>playlists</span></div>
+            </div>
+
+            <div className="view-section-heading"><div><h2>Músicas curtidas</h2><p>Toque para continuar estudando.</p></div>{likedTracks.length > 0 && <button className="collection-play" onClick={() => playCollection(likedTracks)}>▶ Ouvir curtidas</button>}</div>
+            {likedTracks.length ? (
+              <div className="library-cards">
+                {likedTracks.map((track) => (
+                  <article key={track.id} onClick={() => openTrack(track)}>
+                    <div className={`library-cover cover-${track.color}`}>{track.icon}<button onClick={(event) => { event.stopPropagation(); playTrack(track); }}>▶</button></div>
+                    <strong>{track.title}</strong><span>{track.subtitle}</span>
+                  </article>
+                ))}
+              </div>
+            ) : <div className="empty-library"><span>♥</span><h3>Sua coleção está esperando</h3><p>Curta uma faixa para encontrá-la aqui.</p><button onClick={() => navigate("Explorar")}>Explorar músicas</button></div>}
+
+            {playlists.length > 0 && <><div className="view-section-heading"><div><h2>Suas playlists</h2><p>Coleções criadas por você.</p></div></div><div className="playlist-grid">{playlists.map((playlist) => { const collection = playlist.trackIds.map((id) => tracks.find((track) => track.id === id)).filter((track): track is Track => Boolean(track)); return <button key={playlist.id} onClick={() => playCollection(collection)}><span>♫</span><div><strong>{playlist.name}</strong><small>{collection.length} faixa</small></div><b>▶</b></button>; })}</div></>}
+
+            {recentTracks.length > 0 && <><div className="view-section-heading"><div><h2>Ouvidas recentemente</h2><p>Continue de onde parou.</p></div></div><div className="recent-list">{recentTracks.map((track) => <button key={track.id} onClick={() => playTrack(track)}><span className={`compact-cover cover-${track.color}`}>{track.icon}</span><div><strong>{track.title}</strong><small>{track.topic}</small></div><b>▶</b></button>)}</div></>}
+          </section>
         ) : (
         <>
         <section className="hero">
@@ -354,7 +488,7 @@ export default function Home() {
               <button className="primary" onClick={() => playTrack(tracks[0])}>
                 <span>▶</span> Começar a ouvir
               </button>
-              <button className="secondary" onClick={() => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth" })}>
+              <button className="secondary" onClick={() => navigate("Explorar")}>
                 Explorar catálogo
               </button>
             </div>
@@ -416,7 +550,11 @@ export default function Home() {
               <button
                 className={`category category-${category.color}`}
                 key={category.name}
-                onClick={() => category.count !== "Em breve" && setQuery(category.name)}
+                onClick={() => {
+                  if (category.count === "Em breve") return;
+                  setQuery(category.name);
+                  navigate("Explorar");
+                }}
               >
                 <span>{category.icon}</span>
                 <div><strong>{category.name}</strong><small>{category.count}</small></div>
@@ -436,9 +574,23 @@ export default function Home() {
       <nav className="mobile-nav" aria-label="Navegação móvel">
         {["⌂|Início", "⌕|Explorar", "▥|Biblioteca"].map((item) => {
           const [icon, label] = item.split("|");
-          return <button key={label} className={label === "Início" ? "active" : ""}><span>{icon}</span>{label}</button>;
+          const normalized = label === "Biblioteca" ? "Sua biblioteca" : label;
+          return <button key={label} onClick={() => navigate(label)} className={activeNav === normalized ? "active" : ""}><span>{icon}</span>{label}</button>;
         })}
       </nav>
+
+      {queueOpen && (
+        <aside className="queue-panel">
+          <div className="queue-heading"><div><span>FILA DE REPRODUÇÃO</span><strong>A seguir</strong></div><button onClick={() => setQueueOpen(false)}>×</button></div>
+          {tracks.map((track, index) => (
+            <button className={track.id === current.id ? "active" : ""} key={track.id} onClick={() => playTrack(track)}>
+              <span className={`queue-cover cover-${track.color}`}>{track.icon}</span>
+              <span><strong>{track.title}</strong><small>{track.id === current.id ? "Tocando agora" : `${index + 1} • ${track.topic}`}</small></span>
+              <b>{track.id === current.id && isPlaying ? "▮▮" : "▶"}</b>
+            </button>
+          ))}
+        </aside>
+      )}
 
       <div className="player">
         <audio
@@ -446,7 +598,14 @@ export default function Home() {
           src={current.src}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          onEnded={() => skip(1)}
+          onEnded={() => {
+            if (repeatOne && audioRef.current) {
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch(() => setIsPlaying(false));
+            } else {
+              skip(1);
+            }
+          }}
           onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
           onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         />
@@ -469,27 +628,25 @@ export default function Home() {
           <span>{formatTime(duration)}</span>
         </div>
         <div className="now-playing">
-          <div className={`mini-cover cover-${current.color}`}>{current.icon}</div>
-          <div><strong>{current.title}</strong><span>{current.topic} • Pulso</span></div>
+          <button className={`mini-cover cover-${current.color}`} onClick={() => openTrack(current)}>{current.icon}</button>
+          <button className="now-playing-title" onClick={() => openTrack(current)}><strong>{current.title}</strong><span>{current.topic} • Pulso</span></button>
           <div className={`visualizer-shell ${isPlaying ? "is-live" : ""}`} title="Visualização do áudio em tempo real">
             <canvas ref={visualizerRef} className="audio-visualizer" aria-label="Visualização do áudio em tempo real" />
             <i />
           </div>
-          {isPlaying && (
-            <button className="pause-only" onClick={togglePlay} aria-label="Pausar música">Ⅱ</button>
-          )}
+          <button className={`transport-button ${isPlaying ? "playing" : ""}`} onClick={togglePlay} aria-label={isPlaying ? "Pausar música" : "Continuar música"}>{isPlaying ? "Ⅱ" : "▶"}</button>
           <button className={liked.includes(current.id) ? "liked" : "like"} onClick={() => toggleLike(current.id)} aria-label="Curtir faixa">♥</button>
         </div>
         <div className="player-center">
           <div className="controls">
-            <button aria-label="Aleatório">⌘</button>
+            <button className={shuffle ? "control-active" : ""} onClick={() => setShuffle((value) => !value)} aria-label="Aleatório">⌘</button>
             <button onClick={() => skip(-1)} aria-label="Faixa anterior">▮◀</button>
             <button onClick={() => skip(1)} aria-label="Próxima faixa">▶▮</button>
-            <button aria-label="Repetir">↻</button>
+            <button className={repeatOne ? "control-active" : ""} onClick={() => setRepeatOne((value) => !value)} aria-label="Repetir faixa">↻</button>
           </div>
         </div>
         <div className="player-tools">
-          <button aria-label="Fila">☷</button><span>◖</span>
+          <button className={queueOpen ? "control-active" : ""} onClick={() => setQueueOpen((value) => !value)} aria-label="Abrir fila">☷</button><span>◖</span>
           <input
             aria-label="Volume"
             type="range"
