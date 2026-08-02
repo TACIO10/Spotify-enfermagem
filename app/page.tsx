@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 type Track = {
   id: number;
   title: string;
@@ -20,7 +22,7 @@ const tracks: Track[] = [
     title: "Classe Farmacológica",
     subtitle: "Farmacologia • Faixa educativa",
     topic: "Farmacologia",
-    src: "/audio/classe-farmacologica.mp3",
+    src: `${basePath}/audio/classe-farmacologica.mp3`,
     color: "lime",
     icon: "Rx",
     description: "Uma revisão musical das principais classes de medicamentos cobradas em concursos de enfermagem.",
@@ -31,7 +33,7 @@ const tracks: Track[] = [
     title: "Mecanismo de Ação",
     subtitle: "Farmacologia • Faixa educativa",
     topic: "Farmacologia",
-    src: "/audio/mecanismo-de-acao.mp3",
+    src: `${basePath}/audio/mecanismo-de-acao.mp3`,
     color: "violet",
     icon: "↯",
     description: "Entenda como os medicamentos atuam no organismo e fixe os mecanismos mais cobrados em prova.",

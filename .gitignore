@@ -31,6 +31,9 @@ yarn-error.log*
 .*-stderr.log
 .*-pid
 /node_modules-incomplete/
+/.next-vinext-backup/
+/.next-pages-failed/
+/pulso-site*.zip
 
 # env files (can opt-in for committing if needed)
 .env*
