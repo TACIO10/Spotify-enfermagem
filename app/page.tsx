@@ -532,60 +532,23 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="content-section" id="catalogo">
-          <div className="section-heading">
-            <div><h2>Feito para a sua aprovação</h2><p>Comece pelas faixas que já estão tocando.</p></div>
-            <button onClick={() => setQuery("")}>Ver tudo <span>→</span></button>
+        <section className="home-tracks" id="catalogo">
+          <div className="view-section-heading home-track-heading">
+            <div><h2>Todas as faixas</h2><p>{tracks.length} músicas disponíveis</p></div>
+            <button className="collection-play" onClick={() => playCollection(tracks)}>▶ Reproduzir tudo</button>
           </div>
-
-          <div className="track-grid">
-            {filteredTracks.length ? filteredTracks.map((track) => (
-              <article className="track-card" key={track.id}>
-                <button className={`cover cover-${track.color}`} onClick={() => openTrack(track)} aria-label={`Abrir ${track.title}`}>
-                  <div className="cover-symbol">{track.icon}</div>
-                  <div className="wave"><i /><i /><i /><i /><i /><i /></div>
-                  <span className="card-play">→</span>
+          <div className="track-list home-track-list">
+            {tracks.map((track, index) => (
+              <div className={`track-list-item ${current.id === track.id ? "current" : ""}`} key={track.id}>
+                <button className="list-index" onClick={() => playTrack(track)} aria-label={`Reproduzir ${track.title}`}>
+                  {current.id === track.id && isPlaying ? "▮▮" : index + 1}
                 </button>
-                <div className="track-meta">
-                  <button onClick={() => openTrack(track)}>
-                    <strong>{track.title}</strong><span>{track.subtitle}</span>
-                  </button>
-                  <button
-                    className={liked.includes(track.id) ? "liked" : "like"}
-                    onClick={() => toggleLike(track.id)}
-                    aria-label={liked.includes(track.id) ? "Remover das curtidas" : "Curtir"}
-                  >♥</button>
-                </div>
-              </article>
-            )) : (
-              <div className="empty-state">Nenhuma faixa encontrada. Tente buscar “farmacologia”.</div>
-            )}
-            <article className="track-card coming-card">
-              <div className="cover cover-coming"><span>＋</span><small>Novas faixas<br />em breve</small></div>
-              <div className="track-meta"><div><strong>Próxima revisão</strong><span>Seu catálogo está crescendo</span></div></div>
-            </article>
-          </div>
-        </section>
-
-        <section className="content-section category-section">
-          <div className="section-heading">
-            <div><h2>Explore por matéria</h2><p>Encontre o som certo para cada tema.</p></div>
-          </div>
-          <div className="category-grid">
-            {categories.map((category) => (
-              <button
-                className={`category category-${category.color}`}
-                key={category.name}
-                onClick={() => {
-                  if (category.count === "Em breve") return;
-                  setQuery(category.name);
-                  navigate("Explorar");
-                }}
-              >
-                <span>{category.icon}</span>
-                <div><strong>{category.name}</strong><small>{category.count}</small></div>
-                <b>→</b>
-              </button>
+                <button className={`list-cover cover-${track.color}`} onClick={() => openTrack(track)}>{track.icon}</button>
+                <button className="list-title" onClick={() => openTrack(track)}><strong>{track.title}</strong><span>Pulso • {track.topic}</span></button>
+                <span className="list-topic">{track.description}</span>
+                <button className={liked.includes(track.id) ? "liked" : "like"} onClick={() => toggleLike(track.id)} aria-label="Curtir faixa">♥</button>
+                <button className="row-play" onClick={() => current.id === track.id ? togglePlay() : playTrack(track)} aria-label={current.id === track.id && isPlaying ? `Pausar ${track.title}` : `Reproduzir ${track.title}`}>{current.id === track.id && isPlaying ? "Ⅱ" : "▶"}</button>
+              </div>
             ))}
           </div>
         </section>
